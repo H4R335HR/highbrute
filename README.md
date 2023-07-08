@@ -1,6 +1,6 @@
 # highbrute
 
-A simple brute forcing script for solving DVWA labs Brute Force - High difficulty. 
+A simple brute forcing script for solving DVWA labs Brute Force - High difficulty. It'll login using the default credentials for DVWA, admin:password and use the provided username/ userlist and password wordlist to crack the lab.
 ```
 usage: highbrute.py [-h] (-u USERNAME | -U USERNAMES_FILE) -P PASSWORDS [-b BASE_URL] [-v] [-x PROXY]
 
