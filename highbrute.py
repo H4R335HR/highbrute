@@ -46,8 +46,12 @@ def login(session, url, user_token, proxies=None):
         response.raise_for_status()
         if 'index' in response.url:
             logging.info("Logged in successfully")
+        else:
+            logging.error("Couldn't login. Have you changed DVWA's default credentials?")
+            sys.exit(1)
     except requests.RequestException as e:
         logging.error(f"Error in login request: {str(e)}")
+        sys.exit(1)
 
 def set_security(session, url, user_token, proxies=None):
     try:
