@@ -147,8 +147,8 @@ def main():
                         found_credentials = True
                         break
 
-    if not found_credentials:
-        logging.info("No valid credentials were found")
+            if not found_credentials:
+                logging.info(f"Username: {RED}{username}{RESET} No valid credentials could be found")
 
 if __name__ == '__main__':
     main()
