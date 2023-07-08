@@ -2,7 +2,7 @@
 
 A simple brute forcing script for solving DVWA labs Brute Force - High difficulty. 
 ```
-Usage: python highbrute.py [-h] (-u USERNAME | -U USERNAMES_FILE) -P PASSWORDS [-b BASE_URL] [-v]
+usage: highbrute.py [-h] (-u USERNAME | -U USERNAMES_FILE) -P PASSWORDS [-b BASE_URL] [-v] [-x PROXY]
 
 DVWA Bruteforce Script
 
@@ -15,6 +15,9 @@ options:
   -P PASSWORDS, --passwords PASSWORDS
                         Path to the password wordlist file
   -b BASE_URL, --base-url BASE_URL
-                        Base URL for the DVWA instance. Example: http://192.168.0.137/dvwa/
+                        Base URL for the DVWA instance. Example: http://192.168.1.137/dvwa/
   -v, --verbose         Increase verbosity level to DEBUG
+  -x PROXY, --proxy PROXY
+                        Proxy address in the format http://host:port
+
 ```
